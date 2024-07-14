@@ -1,7 +1,7 @@
 # QuizEnchanter
 A dynamic quiz programm that loads quizzes from quiz files!
 
-## Contents
+## Table of Content
 * [General Information](#general-information)
   * [Fun Fact](#fun-fact)
   * [Author](#author)
