@@ -1,0 +1,5 @@
+{
+  "name": "Example Plugin!",
+  "id": "example",
+  "files": ["example.py"]
+}

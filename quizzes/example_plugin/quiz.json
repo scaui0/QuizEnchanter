@@ -1,0 +1,9 @@
+{
+  "name": "Plugin development quiz test",
+  "quizzes": [
+    {
+      "type": "example",
+      "question": "That's the question!"
+    }
+  ]
+}

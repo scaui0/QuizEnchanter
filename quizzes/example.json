@@ -1,0 +1,41 @@
+{
+  "name": "Example Quiz Type",
+  "quizzes": [
+    {
+      "type": "select",
+      "question": "Which mountain the the highest one?",
+      "options": ["Fuji", "Mount Everest", "Zugspitze"],
+      "right": 1
+    },
+    {
+      "type": "match",
+      "question": "English or German greeting, beginning with 'h'?",
+      "right": ["hello", "hallo"],
+      "ignore_case": true
+    },
+    {
+      "type": "match",
+      "question": "English or German greeting, beginning with 'h'?",
+      "regex": "(?i)h[ae]llo"
+    },
+    {
+      "type": "bool",
+      "question": "Mount Everest is the highest mountain on Earth.",
+      "right": true
+    },
+    {
+      "type": "datetime",
+      "question": "On which date in 2000 was Christmas?",
+      "right": ["2000-12-24", "2000-12-25", "2000-12-26"]
+    },
+    {
+      "type": "timeperiod",
+      "question": "How long is the period between St. Nicholas and Christmas?",
+      "right": ["P18D", "P19D"]
+    },
+    {
+      "type": "message",
+      "message": "This is a message!"
+    }
+  ]
+}

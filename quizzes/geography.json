@@ -1,0 +1,35 @@
+{
+  "name": "Geography Quiz",
+  "quizzes": [
+    {
+      "type": "select",
+      "question": "What is the largest country in the world by land area?",
+      "options": ["China", "United States", "Russia", "Canada"],
+      "right": 2
+    },
+    {
+      "type": "select",
+      "question": "Which river is known as the longest river in the world?",
+      "options": ["Nile", "Amazon", "Yangtze", "Mississippi"],
+      "right": 0
+    },
+    {
+      "type": "select",
+      "question": "Mount Everest is part of which mountain range?",
+      "options": ["Alps", "Andes", "Himalayas", "Rockies"],
+      "right": 2
+    },
+    {
+      "type": "select",
+      "question": "What is the capital city of Australia?",
+      "options": ["Sydney", "Melbourne", "Canberra", "Perth"],
+      "right": 0
+    },
+    {
+      "type": "select",
+      "question": "Which desert is the largest hot desert in the world?",
+      "options": ["Gobi", "Sahara", "Arabian", "Kalahari"],
+      "right": 1
+    }
+  ]
+}
