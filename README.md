@@ -1,7 +1,7 @@
 # QuizEnchanter
-A dynamic quiz programm that loads quizzes from quiz files!
+A dynamic quiz program that loads quizzes from quiz files!
 
-## Table of Content
+## Table of Contents
 * [General Information](#general-information)
   * [Fun Fact](#fun-fact)
   * [Author](#author)
@@ -10,9 +10,8 @@ A dynamic quiz programm that loads quizzes from quiz files!
   * [Examples](#examples)
     * [Without Arguments](#without-arguments)
     * [With Arguments](#with-arguments)
-    * [Debug Messages](#debug-messages)
 * [Create Quiz Files](#create-quiz-files)
-* [Builtin QUiz Types](#builtin-quiz-types)
+* [Builtin Quiz Types](#builtin-quiz-types)
   * [Short Descriptions](#short-descriptions)
   * [Long Description](#long-descriptions)
     * [Select](#select)
@@ -29,7 +28,7 @@ A dynamic quiz programm that loads quizzes from quiz files!
 ## General Information
 * Version: 1.0
 
-* GitHub: https://www.github.com/scaui0/QuizEnchanter
+* GitHub: [QuizEnchanter on GitHub](https://www.github.com/scaui0/QuizEnchanter)
 * Python version: 3.11, 3.12 or 3.13
 
 ### Fun Fact
@@ -49,28 +48,31 @@ _Scaui ([scaui0 on GitHub](https://www.github.com/scaui0)) is the developer of t
 7. Execute the following command to install all required packages: `pip install -r requirements.txt`. 
    If it fails, try `python -m pip install -r requirements.txt` instead.
 8. To run the project, use `python QuizEnchanter.py`.
-   If you need arguments, you can add it.
+   You can specify additional arguments if needed.
    For more information, see [Command-Line Interface](#command-line-interface).
 9. Then you will be asked which quiz file you want to run. You can use one of these default quizzes:
    * `example.json`
    * `test.json`
    * `geography.json`
-   * `example_plugin` (not `.json`!)
+   * `example_plugin` (not `.json`!): This is a quiz that uses a plugin.
+     See [above](#plugin-development) to see how to create a plugin.
+   
+   You can also create your own quiz.
+     See [Create Quiz Files](#create-quiz-files).
 
 
 ## Command-Line Interface
 The command-line interface for QuizEnchanter is as follows:
 ```
-usage: QuizEnchanter [-h] [-d] [file]
+usage: QuizEnchanter [-h] [file]
 
 A quiz program
 
 positional arguments:
-  file         optional, absolute path to a quiz file
+  file        optional, absolute path to a quiz file or a relative path starts from quizzes folder
 
 options:
-  -h, --help   show this help message and exit
-  -d, --debug  print debug messages
+  -h, --help  show this help message and exit
 ```
 
 ### Examples:
@@ -100,26 +102,6 @@ Please answer the following questions!
 ...
 ```
 
-#### Debug Messages
-If you want to see debug messages, you can use the `--debug` argument flag. If it is set, the program will give more output.
-`python QuizEnchanter.py --debug`
-```
-Quiz file (in quizzes folder): test.json
-[INFO][2024-07-01 16:29:49](__main__) - Loaded quiz file from C:\Users\<USERNAME>\PycharmProjects\QuizEnchanter\quizzes\test.json
-[DEBUG][2024-07-01 16:29:49](quiz_enchanter) - Loaded model and cli for quiz type match.
-[DEBUG][2024-07-01 16:29:49](quiz_enchanter) - Loaded model and cli for quiz type bool.
-[DEBUG][2024-07-01 16:29:49](quiz_enchanter) - Loaded model and cli for quiz type select.
-[DEBUG][2024-07-01 16:29:49](quiz_enchanter) - Loaded model and cli for quiz type datetime.
-[DEBUG][2024-07-01 16:29:49](quiz_enchanter) - Loaded model and cli for quiz type timeperiod.
-[DEBUG][2024-07-01 16:29:49](quiz_enchanter) - Loaded model and cli for quiz type message.
-Welcome to 'Test Quizzes'!
-Please answer the following questions!
-
-Please answer 'HI'!
-Answer: HI
-...
-```
-
 
 ## Create Quiz Files
 Do you want to create your own quizzes?
@@ -128,7 +110,7 @@ Let's do this!
 Here is a step-by-step guide:
 1. Create a JSON file with a .json extension.
 2. If you're not familiar with JSON, read this guide: [JSON guide](https://www.json.org/json-en.html).
-3. First, you need to give it a name. Then, the file will look like this:
+3. First, you need to assign a name to your quiz file. Then, the file will look like this:
    ```json
    {
      "name": "Example Quiz"
@@ -139,7 +121,7 @@ Here is a step-by-step guide:
    You need to add a `type` to each question.
    Then you can add some more information, that will be passed to the appropriate quiz type.
 
-   There are five builtin quiz types you can use:
+   There are six builtin quiz types you can use:
 
    | Quiz Type    | Short Description                             |
    |--------------|-----------------------------------------------|
@@ -161,24 +143,34 @@ Here is a step-by-step guide:
        {
          "type": "match",
          "question": "Please answer 'HI'!",
-         "right": "HI"
+         "correct": "HI"
        },
        {
          "type": "bool",
          "question": "This is true!",
-         "right": true
+         "correct": true
        },
        {
          "type": "select",
          "question": "The first is correct!",
          "options": ["1", "2", "3", "4"],
-         "right": 0
+         "correct": 0
        },
        {
          "type": "datetime",
          "question": "Please answer 2000-01-01!",
-         "right": "2000-01-01",
+         "correct": "2000-01-01",
          "show_format_information": false
+       },
+       {
+         "type": "timeperiod",
+         "question": "How looks a three-day period in ISO 8601?",
+         "correct": "P3D",
+         "show_format_information": false
+       },
+       {
+         "type": "message",
+         "message": "This is a message!"
        }
      ]
    }
@@ -209,11 +201,11 @@ Here is a step-by-step guide:
 #### `select`
 This quiz type allows creating multiple-choice questions with predefined answer options.
 
-| Argument | Information                                                      | Required |
-|----------|------------------------------------------------------------------|----------|
-| question | The question                                                     | true     |
-| options  | Array of strings                                                 | true     |
-| right    | Right index or right indexes as array. All indexes start from 0! | false    |
+| Argument | Type                 | Information                                  | Required |
+|----------|----------------------|----------------------------------------------|----------|
+| question | String               | The question                                 | true     |
+| options  | Array of Strings     | The list of options the user could select    | true     |
+| correct  | Int or array of ints | Correct index(es). All indexes start from 0! | false    |
 
 Example:
 
@@ -222,36 +214,36 @@ Example:
   "type": "select",
   "question": "Which mountain the the highest one?",
   "options": ["Fuji", "Mount Everest", "Zugspitze"],
-  "right": 1
+  "correct": 1
 }
 ```
    
 #### `match`:
 The answer to the question is a string.
 
-| Argument            | Information                                                                                    | Required | Default                                                                                              |
-|---------------------|------------------------------------------------------------------------------------------------|----------|------------------------------------------------------------------------------------------------------|
-| question            | The question                                                                                   | true     |                                                                                                      |
-| strip_start_and_end | Strip whitespaces around the answer                                                            | false    | true                                                                                                 |
-| right               | The right answer/answers                                                                       | false    | The answer cannot be right. If you just want to check a regex, you can use the `is_right_when` field |
-| ignore_case         | Ignore case                                                                                    | false    | false                                                                                                |
-| regex               | Answer must match the regex (Python-dialect). The `ignore_case` option is not used for regexes | false    | `.*` (matches all answers)                                                                           |
-| is_right_when       | Indicates when the answer should be correct. See description below                             | false    | `regex_and_in_right`                                                                                 |
+| Argument             | Type                 | Information                                                                                    | Required | Default                                                                                                  |
+|----------------------|----------------------|------------------------------------------------------------------------------------------------|----------|----------------------------------------------------------------------------------------------------------|
+| question             | String               | The question                                                                                   | true     |                                                                                                          |
+| strip_start_and_end  | Bool                 | Strip whitespaces around the answer                                                            | false    | true                                                                                                     |
+| correct              | Int or array of ints | The correct answer/answers                                                                     | false    | The answer cannot be correct. If you just want to check a regex, you can use the `is_correct_when` field |
+| ignore_case          | Bool                 | Ignore case                                                                                    | false    | false                                                                                                    |
+| regex                | String               | Answer must match the regex (Python-dialect). The `ignore_case` option is not used for regexes | false    | `.*` (matches all answers)                                                                               |
+| is_correct_when      | String               | Indicates when the answer should be correct. See description below                             | false    | `regex_and_in_correct`                                                                                   |
 
-The `is_right_when` field has three possible values:
+The `is_correct_when` field has three possible values:
 
-| Value                | Answer is right if                            |
-|----------------------|-----------------------------------------------|
-| `regex`              | the regex matches                             |
-| `in_rihgt`           | if the inputted string in the right answer is |
-| `regex_and_in_right` | the both things above matches                 |
+| Value                  | Answer is correct if                            |
+|------------------------|-------------------------------------------------|
+| `regex`                | the regex matches                               |
+| `in_rihgt`             | if the inputted string in the correct answer is |
+| `regex_and_in_correct` | the both things above matches                   |
 
 Example without the `regex` field:
 ```json
 {
   "type": "match",
   "question": "English or German greeting, beginning with 'h'?",
-  "right": ["hello", "hallo"],
+  "correct": ["hello", "hallo"],
   "ignore_case": true
 }
 ```
@@ -265,19 +257,19 @@ The same example using the `regex` field:
 ```
 
 #### `bool`:
-The user has to decide whether the statement is right.
+The user has to decide whether the statement is correct.
   
-| Argument | Information                                      | Required |
-|----------|--------------------------------------------------|----------|
-| question | The question (actually a statement)              | true     |
-| right    | Indicates whether the question’s answer is right | true     |
+| Argument   | Type   | Information                                        | Required |
+|------------|--------|----------------------------------------------------|----------|
+| question   | String | The question (actually a statement)                | true     |
+| correct    | Bool   | Indicates whether the question’s answer is correct | true     |
 
 Example:
 ```json
 {
   "type": "bool",
   "question": "Mount Everest is the highest mountain on Earth.",
-  "right": true
+  "correct": true
 }
 ```
 
@@ -288,44 +280,44 @@ If only the date or time is needed, the other part can be omitted.
 The `T` is used as a separator between the date and the time.
 If you want to check a time period, you can use the [`timeperiod` quiz type](#timeperiod)
  
-| Argument                | Information                                       | Required | Default |
-|-------------------------|---------------------------------------------------|----------|---------|
-| question                | The question                                      | true     |         |
-| right                   | The right date(s) in ISO 8601 format              | true     |         |
-| show_format_information | Shows a message about the date format to the user | false    | true    |
+| Argument                | Type                       | Information                                       | Required | Default |
+|-------------------------|----------------------------|---------------------------------------------------|----------|---------|
+| question                | String                     | The question                                      | true     |         |
+| correct                 | String or array of strings | The correct date(s) in ISO 8601 format            | true     |         |
+| show_format_information | Bool                       | Shows a message about the date format to the user | false    | true    |
 
 Example:
 ```json
 {
   "type": "datetime",
   "question": "On which date in 2000 was Christmas?",
-  "right": ["2000-12-24", "2000-12-25", "2000-12-26"]
+  "correct": ["2000-12-24", "2000-12-25", "2000-12-26"]
 }
 ```
 
 #### `timeperiod`:
 A timeperiod in [ISO 8601](https://www.iso.org/iso-8601-date-and-time-format.html).
 
-| Argument | Information              | Required |
-|----------|--------------------------|----------|
-| question | The question             | true     |
-| right    | The right time period(s) | true     |
+| Argument  | Type                       | Information                | Required |
+|-----------|----------------------------|----------------------------|----------|
+| question  | String                     | The question               | true     |
+| correct   | String or array of strings | The correct time period(s) | true     |
 
 Example:
 ```json
 {
   "type": "timeperiod",
   "question": "How long is the period between St. Nicholas and Christmas?",
-  "right": ["P18D", "P19D"]
+  "correct": ["P18D", "P19D"]
 }
 ```
 
 #### `message`
 Shows a message.
 
-| Argument | Information | Required |
-|----------|-------------|----------|
-| message  | The message | true     |
+| Argument | Type   | Information | Required |
+|----------|--------|-------------|----------|
+| message  | String | The message | true     |
 
 Example:
 ```json
@@ -336,20 +328,20 @@ Example:
 ```
 
 
-
 ## Plugin Development
 Not enough quiz types? Let's create your own plugin and define your own quiz types!
 
 A plugin is a folder containing at least one file: a configuration file `extension.json`.
-This simple plugin cannot register quiz types.
+A plugin that has only one file (`extension.json`) cannot register quiz types.
+\
 If you want to register quiz types (why else would you create a plugin?), you must have at least one Python file,
 which is linked in the `files` array of the configuration file.
 
 The builtin quiz types are defined by the `default` plugin.
 
 Here is a step-by-step guide:
-1. Create a folder that should ideally have the name of the plugin.
-2. Create the plugin main file, which is a Python file.
+1. Create a folder that should ideally have the name of the plugin. You mustn't do that, but it's more comfortable and clear.
+2. Create the plugin main file, which is a Python file (`.py`).
 3. Copy the following template inside a new `extension.json` file, which is in the main folder:
     ```json
     {
@@ -360,7 +352,7 @@ Here is a step-by-step guide:
    
    The `files` field is a list of python files (relativ from plugin folder) that are executed on loading plugin.
 4. Fill the name and the id. The id should be unique!
-5. Create a new python file in the main folder and specify it in the `file` field of the `extension.json` file.
+5. Create a new python file in the main folder and specify it in the `files` field of the `extension.json` file.
 6. Fill the referenced Python files with your plugin content!
    When you create quiz types, you need to have a plugin object.
 
@@ -381,31 +373,32 @@ Here is a step-by-step guide:
     They are called `model` and `cli`.
     This is more comfortable than the other option.
    
-   * The other way is to use `plugin.register_quiz_type(id, name, model, cli)`.
+   * The other way is to use `plugin.register_quiz_type(id, name, model=your_model, cli=your_cli)`.
 
 
 
 ### The Model
 The model is the manager for user input.
-It manages whether the user's answer is right and how many points he got.
+It manages whether the user's answer is correct and how many points they got.
 
 Methods:
-* `__init__`: It expects one argument: a dict filled with the quiz json data from the quiz file. 
+* `__init__`: It expects one argument: a dict filled with the quiz JSON data from the quiz file.
+* `property is_correct`: Returns a tuple of two ints: The reached points and the max points the user could reach.
+  This method shouldn't get user inputs!
   Default is 0, 0.
-* `property is_right`: Returns a tuple of two ints: The reached points and the max points the user could reach.
-  It shouldn't get user inputs!
 
-If you don't create a model class, the `cli`'s `model` parameter will be a dict, 
+If you don't create a model class,
+the `cli`'s `model` parameter will be a dict (actually it's a DictModel, which inherits from dict), 
 filled with information from the JSON file.
 
 ### The CLI
 The CLI gets input from the user using `print`s and `inputs`s.
-The CLI shouldn't print whether the user's input is right!
+The CLI shouldn't print whether the user's input is correct or false!
 
 Arguments:
-* `model`: The model, already initialised with the quiz json data.
+* `model`: The model, already initialised with the quiz JSON data.
 
-Returns a tuple of two ints: The reached points and the max points the user could reach.
+Returns the user's selection.
 
 
 After registration, you can use your quiz type in quiz files.
@@ -443,9 +436,8 @@ example_quiz_type = plugin.quiz_type("example", "Example quiz type")
 class ExampleModel(BaseModel):
     def __init__(self, json_data):
         self.question = json_data["question"]
-        
-    @property
-    def is_right(self):
+
+    def is_correct(self, selection):
         return 1, 1
 
 
@@ -453,9 +445,8 @@ class ExampleModel(BaseModel):
 def run(model):
     input(model.question)
 
-    return model.is_right
-
 ```
+If you need more examples, take a look at the [`default` plugin](quiz_enchanter/default_extension).
 
 To test our plugin, we need to create a quiz file.
 Since there are plugins needed for the quiz, we need to combine our plugin and the quiz file.
@@ -465,4 +456,5 @@ The quiz file must be named `quiz.json`.
 Next to `quiz.json`, we need to create a folder `plugins` and place our plugin inside it.
 Then start the QuizEnchanter.py and write `example`!
 If you want, create more complex quizzes and plugins!
+
 Good luck!

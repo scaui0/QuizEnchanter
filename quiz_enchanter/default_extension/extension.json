@@ -3,11 +3,12 @@
   "id": "default",
   "files": [
     "extension.py",
-    "match_extension.py",
-    "select_extension.py",
+
     "bool_extension.py",
     "date_extension.py",
-    "timeperiod_extension.py",
-    "message_extension.py"
+    "match_extension.py",
+    "message_extension.py",
+    "select_extension.py",
+    "timeperiod_extension.py"
   ]
 }

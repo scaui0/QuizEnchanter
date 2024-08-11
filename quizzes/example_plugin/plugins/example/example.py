@@ -10,13 +10,10 @@ class ExampleModel(BaseModel):
     def __init__(self, json_data):
         self.question = json_data["question"]
 
-    @property
-    def is_right(self):
+    def is_correct(self, selection):
         return 1, 1
 
 
 @example_quiz_type.cli
 def run(model):
     input(model.question)
-
-    return model.is_right

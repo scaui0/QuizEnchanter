@@ -10,14 +10,11 @@ class SelectModel(BaseModel):
         self.question = json_data["question"]
         self.options = json_data["options"]
 
-        right = json_data.get("right", None)
-        self.right = right if isinstance(right, list) else [right]  # Multiple right answers are allowed!
+        correct = json_data.get("correct", None)
+        self.correct = correct if isinstance(correct, list) else [correct]  # Multiple correct answers are allowed!
 
-        self.selection = None
-
-    @property
-    def is_right(self):
-        return self.selection in self.right, 1
+    def is_correct(self, selection):
+        return selection in self.correct, 1
 
 
 @select_quiz_type.cli
@@ -30,11 +27,8 @@ def run(model):
     while True:
         selection = input("Select index: ")
         try:
-            selection = int(selection) - 1  # -1 because in quiz files they're start counting beginning from 0
+            selection = int(selection) - 1  # -1 because in quiz files they start counting beginning from 0
             if selection in range(len(model.options)):
-                model.selection = selection
-                break
+                return selection
         except ValueError:
             pass
-
-    return model.is_right

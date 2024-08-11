@@ -4,29 +4,29 @@
     {
       "type": "match",
       "question": "Please answer 'HI'!",
-      "right": "HI"
+      "correct": "HI"
     },
     {
       "type": "bool",
       "question": "This is true!",
-      "right": true
+      "correct": true
     },
     {
       "type": "select",
-      "question": "The first is the right!",
+      "question": "The first is the correct!",
       "options": ["1", "2", "3", "4"],
-      "right": 0
+      "correct": 0
     },
     {
       "type": "datetime",
       "question": "Please answer 2000-01-01!",
-      "right": "2000-01-01",
+      "correct": "2000-01-01",
       "show_format_information": true
     },
     {
       "type": "timeperiod",
       "question": "How looks a three-day period in ISO 8601?",
-      "right": "P3D",
+      "correct": "P3D",
       "show_format_information": false
     },
     {

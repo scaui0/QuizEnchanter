@@ -1,13 +1,25 @@
 import json
-import logging
 import random
 from importlib.util import spec_from_file_location, module_from_spec
 from pathlib import Path
+from typing import Self
 
 
 CURRENT_PATH = Path(__file__).parent
+DEFAULT_EXTENSION_PATH = CURRENT_PATH / "default_extension"
 
-logger = logging.getLogger(__name__)
+
+def path_relative_or_absolute(path: Path, path_start: Path):
+    """Converts a relative or absolute path to an absolute path.
+
+    When an absolute path must be joined, it joins path_start and path.
+
+    :param path_start:
+    :param path: The relative or absolute path of the path.
+    :return: The input path, converted to an absolute path.
+    """
+    path = Path(path)
+    return path if path.is_absolute() else path_start / path
 
 
 class AlreadyRegisteredError(BaseException):
@@ -33,8 +45,7 @@ class NotRegisteredError(BaseException):
 
 
 class BaseModel:
-    @property
-    def is_right(self):  # TODO: Maybe use is_right(user_input) instead?
+    def is_correct(self, user_answer):
         return 0, 0
 
 
@@ -52,20 +63,85 @@ class DictModel(dict, BaseModel):  # TODO: Why is it there?
 
 
 class QuizType:
-    def __init__(self, name, identifier, model=DictModel, cli=base_cli):
+    def __init__(self, name, identifier, **kwargs):
         self.name = name
         self.identifier = identifier
 
-        self.model_class = model
-        self.cli_func = cli
+        self._values = kwargs
 
-    def cli(self, func):
-        self.cli_func = func
-        return func
+    def get(self, value, default=None):
+        try:
+            return self._values[value]
+        except KeyError:
+            if default is not None:
+                return default
+            else:
+                raise
 
-    def model(self, func):
-        self.model_class = func
-        return func
+    def __getattr__(self, item):
+        def decorator(func_or_class):
+            self._values[item] = func_or_class
+
+        return decorator
+
+    def __repr__(self):
+        return f"<QuizType {self.identifier}>"
+
+
+class Quiz:
+    def __init__(self, json_data, plugin_manager):
+        self.name = json_data["name"]
+        self.quizzes = [
+            (plugin_manager.all_activated_quiz_types[data["type"]], data) for data in json_data["quizzes"]
+        ]
+
+    def run_cli(self,
+                show_rating_at_end=True, show_total=True,
+                show_rating_after_answer=True, show_points_after_answer=True,
+                use_right_wrong_rating_on_true_false_questions=True,
+                show_rating_on_empty_questions=False, print_greeting=True):
+
+        if print_greeting:
+            print(f"Welcome to {self.name!r}!\nPlease answer the following questions!\n")
+
+        reached_points = 0
+        max_points = 0
+        for quiz_type, quiz_data in self.quizzes:
+            cli = quiz_type.get("cli")
+            model = quiz_type.get("model")(quiz_data)
+
+            reached_points_for_quiz, max_points_for_quiz = model.is_correct(cli(model))
+
+            reached_points += reached_points_for_quiz
+            max_points += max_points_for_quiz
+
+            if (reached_points_for_quiz in (0, 1) and max_points_for_quiz == 1
+                    and use_right_wrong_rating_on_true_false_questions):
+                print("That's correct! :)" if reached_points_for_quiz else "That's incorrect! :(")
+            elif reached_points_for_quiz == 0 and max_points_for_quiz == 0 and not show_rating_on_empty_questions:
+                pass
+            else:
+                print(
+                    response_for_points(
+                        reached_points_for_quiz, max_points_for_quiz, SMILEY_RESPONSES
+                    ) if show_rating_after_answer else "",
+                    f"{reached_points_for_quiz}/{max_points_for_quiz}" if show_points_after_answer else ""
+                )
+
+            print()
+
+        try:
+            percent = reached_points / max_points * 100
+        except ZeroDivisionError:
+            percent = 100
+
+        if show_rating_at_end:
+            print(response_for_points(reached_points, max_points))
+
+        if show_total:
+            print(f"Total: {int(percent)}% {reached_points}/{max_points}")
+
+        return reached_points, max_points, percent
 
 
 class Plugin:
@@ -82,21 +158,20 @@ class Plugin:
         Plugin.GLOBAL_PLUGINS[identifier] = self
 
     @classmethod
-    def get_plugin(cls, identifier):
+    def get_plugin(cls, identifier: str) -> Self:
         if identifier not in Plugin.GLOBAL_PLUGINS:
             raise NotRegisteredError(identifier, "plugin")
         else:
             return Plugin.GLOBAL_PLUGINS[identifier]
 
-    def register_quiz_type(self, identifier, name, model=None, cli=None):
+    def register_quiz_type(self, identifier, name, **kwargs):
         if identifier in self.quiz_types:
             raise AlreadyRegisteredError(identifier)
         else:
             self.quiz_types[identifier] = QuizType(
                 name=name,
                 identifier=identifier,
-                model=model,
-                cli=cli,
+                **kwargs
             )
 
     def quiz_type(self, identifier, name):
@@ -154,7 +229,7 @@ class PluginManager:
             self.deactivated_plugins[plugin.identifier] = plugin
 
     @property
-    def all_plugins(self):
+    def all_plugins(self) -> dict[str, Plugin]:
         return self.activated_plugins | self.deactivated_plugins
 
     @property
@@ -167,17 +242,17 @@ class PluginManager:
         }
 
     @classmethod
-    def plugin_from_main_folder(cls, path_to_main_folder):
-        """Load a plugin from the main folder. This requires that there is a file, called 'extension.json'."""
-        with open(Path(path_to_main_folder) / "extension.json", encoding="utf-8") as plugin_config_file:
+    def plugin_from_main_folder(cls, path_to_main_folder: Path):
+        """Load a plugin from the main folder. This requires that there is a file called 'extension.json'."""
+        with (path_to_main_folder / "extension.json").open(encoding="utf-8") as plugin_config_file:
             plugin_config = json.load(plugin_config_file)
 
             plugin_id = plugin_config["id"]
 
-            plugin_python_files = (Path(path_to_main_folder) / file_name for file_name in plugin_config["files"])
+            plugin_python_files = (path_to_main_folder / file_name for file_name in plugin_config["files"])
 
             for plugin_python_file in plugin_python_files:
-                # Load plugin_python_file as module into extension_modul
+                # Load plugin_python_file as a module into extension_modul
                 spec = spec_from_file_location(plugin_python_file.stem, plugin_python_file)
                 extension_modul = module_from_spec(spec)
                 # Execute modul
@@ -220,7 +295,7 @@ def response_for_points(points, max_points, responses=None):
 
 def execute_quiz_as_cli_from_quiz_file(main_path):
     main_path = Path(main_path)
-    plugin_folders = [CURRENT_PATH / "extensions/default_extension"]
+    plugin_folders = [DEFAULT_EXTENSION_PATH]
 
     if main_path.is_dir():
         path_to_quiz_file = main_path / "quiz.json"
@@ -241,79 +316,9 @@ def execute_quiz_as_cli_from_quiz_file(main_path):
 
     if not path_to_quiz_file.exists():
         print(f"No quiz found at {path_to_quiz_file}!")
-        logger.error(f"No quiz found at {path_to_quiz_file}!")
         return
-
-    if not path_to_quiz_file.exists():
-        raise FileNotFoundError(f"File {path_to_quiz_file} doesn't exists!")
 
     with path_to_quiz_file.open("r", encoding="utf-8") as quiz_file:
         quiz_config = json.load(quiz_file)
 
-    execute_quiz_as_cli(quiz_config, plugin_manager)
-
-
-def execute_quiz_as_cli(json_data, plugin_manager,
-                        show_rating_at_end=True, show_total=True,
-                        show_rating_after_answer=True, show_points_after_answer=True,
-                        use_right_wrong_rating_on_true_false_questions=True,
-                        show_rating_on_empty_questions=False, print_greeting=True):
-    quiz_name = json_data["name"]
-
-    quiz_clis_and_models = []
-    for quiz_data in json_data["quizzes"]:
-        if "type" not in quiz_data:
-            raise KeyError("Quiz data has no key 'type' field!")
-
-        quiz_type_as_string = quiz_data["type"]
-        if quiz_type_as_string not in plugin_manager.all_activated_quiz_types:
-            raise NotRegisteredError(quiz_type_as_string, "Quiz type")
-
-        quiz_type = plugin_manager.all_activated_quiz_types[quiz_type_as_string]
-
-        model = quiz_type.model_class(quiz_data)
-        cli = quiz_type.cli_func
-        quiz_clis_and_models.append((model, cli))
-
-        logger.debug(f"Loaded model and cli for quiz type {quiz_type_as_string}.")
-
-    if print_greeting:
-        print(f"Welcome to {quiz_name!r}!\nPlease answer the following questions!\n")
-
-    reached_points = 0
-    max_points = 0
-    for model, cli in quiz_clis_and_models:
-
-        reached_points_for_quiz, max_points_for_quiz = cli(model)
-
-        reached_points += reached_points_for_quiz
-        max_points += max_points_for_quiz
-
-        if (reached_points_for_quiz in (0, 1) and max_points_for_quiz == 1
-                and use_right_wrong_rating_on_true_false_questions):
-            print("That's right! :)" if reached_points_for_quiz else "That's wrong! :(")
-
-        elif reached_points_for_quiz == 0 and max_points_for_quiz == 0 and not show_rating_on_empty_questions:
-            pass
-        else:
-            print(
-                response_for_points(
-                    reached_points_for_quiz, max_points_for_quiz, SMILEY_RESPONSES
-                ) if show_rating_after_answer else "",
-                f"{reached_points_for_quiz}/{max_points_for_quiz}" if show_points_after_answer else ""
-            )
-
-        print()
-
-    try:
-        percent = reached_points / max_points * 100
-    except ZeroDivisionError:
-        percent = 100
-
-    if show_rating_at_end:
-        print(response_for_points(reached_points, max_points))
-
-    if show_total:
-        print(f"Total: {int(percent)}% {reached_points}/{max_points}")
-
-    return reached_points, max_points, percent
+    Quiz(quiz_config, plugin_manager).run_cli()

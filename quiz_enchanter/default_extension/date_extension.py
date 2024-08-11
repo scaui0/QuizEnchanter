@@ -13,19 +13,16 @@ BASIC_ISO_8601_FORMAT = "YYYY-MM-DDThh:mm:ss"
 class DateTimeModel(BaseModel):
     def __init__(self, json_data):
         self.question = json_data["question"]
-        right_from_json = json_data["right"]
+        correct_from_json = json_data["correct"]
 
-        right_datetimes_as_strings = right_from_json if isinstance(right_from_json, list) else [right_from_json]
-        # Multiple right are allowed
-        self.right = [datetime.fromisoformat(datetime_string) for datetime_string in right_datetimes_as_strings]
+        correct_datetimes_as_strings = correct_from_json if isinstance(correct_from_json, list) else [correct_from_json]
+        # Multiple correct answers are allowed
+        self.correct = [datetime.fromisoformat(datetime_string) for datetime_string in correct_datetimes_as_strings]
 
         self.show_format_information = json_data.get("show_format_information", True)
 
-        self.selection = None
-
-    @property
-    def is_right(self):
-        return self.selection in self.right, 1
+    def is_correct(self, selection):
+        return selection in self.correct, 1
 
 
 @datetime_quiz_type.cli
@@ -39,9 +36,6 @@ def run(model):
     while True:
         answer = input("Answer: ")
         try:
-            model.selection = datetime.fromisoformat(answer)
-            break
+            return datetime.fromisoformat(answer)
         except ValueError:
             continue
-
-    return model.is_right

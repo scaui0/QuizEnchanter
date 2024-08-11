@@ -4,29 +4,29 @@
     {
       "type": "bool",
       "question": "This programm is programmed in Python.",
-      "right": true
+      "correct": true
     },
     {
       "type": "bool",
       "question": "This programm has been going to be a vocabulary trainer.",
-      "right": true
+      "correct": true
     },
     {
       "type": "bool",
       "question": "When I wrote this, I had WLAN connection.",
-      "right": false
+      "correct": false
     },
     {
       "type": "select",
       "question": "How is author of this project is called on GitHub?",
       "options": ["_Scaui", "_scaui", "Scaui", "scaui", "Scaui_", "scaui_", "Scaui0", "scaui0", "Scaui1", "scaui1"],
-      "right": 7
+      "correct": 7
     },
     {
       "type": "select",
       "question": "Am I bored?",
       "options": ["Yes", "No"],
-      "right": 0
+      "correct": 0
     }
   ]
 }

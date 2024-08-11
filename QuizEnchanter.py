@@ -1,44 +1,32 @@
 #!usr/bin/env python3
-import logging
 from argparse import ArgumentParser
 from pathlib import Path
 
-from quiz_enchanter import execute_quiz_as_cli_from_quiz_file
+from quiz_enchanter import execute_quiz_as_cli_from_quiz_file, path_relative_or_absolute
 
 
 CURRENT_PATH = Path(__file__).parent
 
-QUIZ_ALWAYS_TO_OPEN = None
+QUIZ_ALWAYS_TO_OPEN_IF_NO_OTHER_SPECIFIED = None
 
-parser = ArgumentParser("QuizEnchanter", description="A quiz program")
-parser.add_argument("file", nargs='?', help="optional, absolute path to a quiz file")
-parser.add_argument("-d", "--debug", action='store_true', help="print debug messages")
+parser = ArgumentParser("QuizEnchanter", description="A quiz program that allows you to create plugins")
+parser.add_argument(
+    "file", nargs='?',
+    help="optional, absolute path to a quiz file or a relative path starts from quizzes folder"
+)
 
 args = parser.parse_args()
 
-if args.debug:
-    logging.basicConfig(
-        level= logging.DEBUG,
-        format="[%(levelname)s][%(asctime)s](%(name)s) - %(message)s",
-        datefmt='%Y-%m-%d %H:%M:%S'
+if args.file is not None:
+    quiz_path = path_relative_or_absolute(Path(args.file), CURRENT_PATH / "quizzes")
+elif QUIZ_ALWAYS_TO_OPEN_IF_NO_OTHER_SPECIFIED is not None:
+    quiz_path = path_relative_or_absolute(Path(QUIZ_ALWAYS_TO_OPEN_IF_NO_OTHER_SPECIFIED), CURRENT_PATH / "quizzes")
+    print(
+        f"Loaded quiz from file {QUIZ_ALWAYS_TO_OPEN_IF_NO_OTHER_SPECIFIED} because QUIZ_ALWAYS_TO_OPEN contains this "
+        f"path."
     )
 else:
-    logging.basicConfig(
-        level= logging.FATAL,
-        format="[%(levelname)s][%(asctime)s](%(name)s) - %(message)s",
-        datefmt='%Y-%m-%d %H:%M:%S'
-    )
-
-logger = logging.getLogger(__name__)
-
-quiz_path = args.file
-if QUIZ_ALWAYS_TO_OPEN is not None:
-    quiz_path = QUIZ_ALWAYS_TO_OPEN
-    logger.info(f"Loaded quiz from file {QUIZ_ALWAYS_TO_OPEN} because QUIZ_ALWAYS_TO_OPEN contains this path.")
-
-elif quiz_path is None:
     quiz_name = input("Quiz file (in quizzes folder): ")
-    quiz_path = CURRENT_PATH / f"quizzes/{quiz_name}"
-    logger.info(f"Loaded quiz file from {quiz_path}")
+    quiz_path = path_relative_or_absolute(Path(quiz_name), CURRENT_PATH / "quizzes")
 
 execute_quiz_as_cli_from_quiz_file(quiz_path)
