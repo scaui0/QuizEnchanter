@@ -26,7 +26,7 @@ A dynamic quiz program that loads quizzes from quiz files!
   * [An Example Plugin](#an-example-plugin)
 
 ## General Information
-* Version: 1.0
+* Version: 1.1
 
 * GitHub: [QuizEnchanter on GitHub](https://www.github.com/scaui0/QuizEnchanter)
 * Python version: 3.11, 3.12 or 3.13
