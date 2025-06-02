@@ -1,6 +1,13 @@
 from datetime import datetime
+from pathlib import Path
 
-from quiz_enchanter import Plugin, BaseModel
+import isodate.isodatetime
+from PyQt6.QtCore import QDateTime, Qt
+from PyQt6.QtWidgets import QWidget, QDateTimeEdit
+from PyQt6.uic import loadUi
+
+from quiz_enchanter import Plugin, BaseModel, BaseGUI
+
 
 plugin = Plugin.get_plugin("default")
 datetime_quiz_type = plugin.quiz_type("datetime", "DateTime")
@@ -22,7 +29,7 @@ class DateTimeModel(BaseModel):
         self.show_format_information = json_data.get("show_format_information", True)
 
     def is_correct(self, selection):
-        return selection in self.correct, 1
+        return int(selection in self.correct), 1
 
 
 @datetime_quiz_type.cli
@@ -39,3 +46,15 @@ def run(model):
             return datetime.fromisoformat(answer)
         except ValueError:
             continue
+
+
+@datetime_quiz_type.gui
+class DateTimeGUI(BaseGUI):
+    def __init__(self, model):
+        super().__init__(model)
+        loadUi(Path(__file__).parent.parent / "ui/ui_files/datetime.ui", self)
+
+        self.question.setText(model.question)
+
+    def selection(self):
+        return self.date_time.dateTime().toPyDateTime()

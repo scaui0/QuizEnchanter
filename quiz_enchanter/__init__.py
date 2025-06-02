@@ -1,8 +1,14 @@
+__version__ = '2.0.0'
+__author__ = '_Scaui'
+
+import dataclasses
 import json
 import random
 from importlib.util import spec_from_file_location, module_from_spec
 from pathlib import Path
 from typing import Self
+
+from PyQt6.QtWidgets import QWidget
 
 
 CURRENT_PATH = Path(__file__).parent
@@ -26,7 +32,7 @@ class AlreadyRegisteredError(BaseException):
     """AlreadyRegisteredError"""
 
     def __init__(self, thing, type_=None):
-        self.type_ = thing.__class__.__name__ if type is None else type_
+        self.type_ = thing.__class__.__name__ if type_ is None else type_
         self.thing = thing
 
     def __str__(self):
@@ -58,8 +64,39 @@ def base_cli(model):
     return 0, 0
 
 
-class DictModel(dict, BaseModel):  # TODO: Why is it there?
+class BaseGUI(QWidget):
+    def __init__(self, model, parent=None):
+        super().__init__(parent)
+
+    def selection(self):
+        return None
+
+
+class DictModel(dict, BaseModel):
     pass
+
+
+@dataclasses.dataclass
+class DialogueOptions:
+    show_rating_at_end: bool = dataclasses.field(default=True)
+    show_total: bool = dataclasses.field(default=True)
+    show_rating_after_answer: bool = dataclasses.field(default=True)
+    show_points_after_answer: bool = dataclasses.field(default=True)
+    use_right_wrong_rating_on_true_false_questions: bool = dataclasses.field(default=True)
+    show_rating_on_empty_questions: bool = dataclasses.field(default=False)
+    print_greeting: bool = dataclasses.field(default=True)
+
+    def get_response_for_question(self, reached_points: int, max_points: int) -> str:
+        if (reached_points in (0, 1) and max_points == 1
+                and self.use_right_wrong_rating_on_true_false_questions):
+            return "That's correct! :)" if reached_points else "That's incorrect! :("
+        elif reached_points == 0 and max_points == 0 and not self.show_rating_on_empty_questions:
+            pass
+        else:
+            return (response_for_points(
+                reached_points, max_points, SMILEY_RESPONSES
+            ) if self.show_rating_after_answer else "" +
+                                                    f"{reached_points}/{max_points}" if self.show_points_after_answer else "")
 
 
 class QuizType:
@@ -89,44 +126,57 @@ class QuizType:
 
 
 class Quiz:
-    def __init__(self, json_data, plugin_manager):
+    def __init__(self, main_path):
+        main_path = Path(main_path)
+        plugin_folders = [DEFAULT_EXTENSION_PATH]
+
+        if main_path.is_dir():
+            path_to_quiz_file = main_path / "quiz.json"
+
+            plugin_main_path = main_path / "plugins"
+            if plugin_main_path.exists():
+                plugin_folders += plugin_main_path.iterdir()
+        else:
+            path_to_quiz_file = main_path
+
+        plugin_manager = PluginManager()
+
+        for plugin_path in plugin_folders:
+            plugin_manager.add_plugin(
+                Plugin.plugin_from_main_folder(plugin_path),
+                activate=True
+            )
+
+        if not path_to_quiz_file.exists():
+            raise FileNotFoundError(f"Quiz file does not exist! {path_to_quiz_file}")
+
+        with path_to_quiz_file.open("r", encoding="utf-8") as quiz_file:
+            json_data = json.load(quiz_file)
+
         self.name = json_data["name"]
         self.quizzes = [
             (plugin_manager.all_activated_quiz_types[data["type"]], data) for data in json_data["quizzes"]
         ]
 
-    def run_cli(self,
-                show_rating_at_end=True, show_total=True,
-                show_rating_after_answer=True, show_points_after_answer=True,
-                use_right_wrong_rating_on_true_false_questions=True,
-                show_rating_on_empty_questions=False, print_greeting=True):
+    def run_cli(self, dialogue_options: DialogueOptions):
 
-        if print_greeting:
+        if dialogue_options.print_greeting:
             print(f"Welcome to {self.name!r}!\nPlease answer the following questions!\n")
 
         reached_points = 0
         max_points = 0
         for quiz_type, quiz_data in self.quizzes:
-            cli = quiz_type.get("cli")
-            model = quiz_type.get("model")(quiz_data)
+            cli = quiz_type.get("cli", base_cli)
+            model = quiz_type.get("model", DictModel)(quiz_data)
 
             reached_points_for_quiz, max_points_for_quiz = model.is_correct(cli(model))
 
             reached_points += reached_points_for_quiz
             max_points += max_points_for_quiz
 
-            if (reached_points_for_quiz in (0, 1) and max_points_for_quiz == 1
-                    and use_right_wrong_rating_on_true_false_questions):
-                print("That's correct! :)" if reached_points_for_quiz else "That's incorrect! :(")
-            elif reached_points_for_quiz == 0 and max_points_for_quiz == 0 and not show_rating_on_empty_questions:
-                pass
-            else:
-                print(
-                    response_for_points(
-                        reached_points_for_quiz, max_points_for_quiz, SMILEY_RESPONSES
-                    ) if show_rating_after_answer else "",
-                    f"{reached_points_for_quiz}/{max_points_for_quiz}" if show_points_after_answer else ""
-                )
+            print(
+                dialogue_options.get_response_for_question(reached_points_for_quiz, max_points_for_quiz)
+            )
 
             print()
 
@@ -135,10 +185,10 @@ class Quiz:
         except ZeroDivisionError:
             percent = 100
 
-        if show_rating_at_end:
+        if dialogue_options.show_rating_at_end:
             print(response_for_points(reached_points, max_points))
 
-        if show_total:
+        if dialogue_options.show_total:
             print(f"Total: {int(percent)}% {reached_points}/{max_points}")
 
         return reached_points, max_points, percent
@@ -152,10 +202,13 @@ class Plugin:
         self.name = name
         self.quiz_types = {}
 
-        if identifier in Plugin.GLOBAL_PLUGINS:
-            raise AlreadyRegisteredError(identifier)
+        # if identifier in Plugin.GLOBAL_PLUGINS:
+        #     raise AlreadyRegisteredError(identifier, "Plugin")
 
         Plugin.GLOBAL_PLUGINS[identifier] = self
+
+        if Plugin.GLOBAL_PLUGINS["default"] is None:
+            Plugin.plugin_from_main_folder(DEFAULT_EXTENSION_PATH)
 
     @classmethod
     def get_plugin(cls, identifier: str) -> Self:
@@ -181,6 +234,29 @@ class Plugin:
             quiz_type = QuizType(name, identifier)
             self.quiz_types[identifier] = quiz_type
             return quiz_type
+
+    @classmethod
+    def plugin_from_main_folder(cls, path_to_main_folder: Path):
+        """
+        Load a plugin from the main folder. This requires that there is a file called 'extension.json'.
+        The plugin is added to Plugin.GLOBAL_PLUGINS"""
+        with (path_to_main_folder / "extension.json").open(encoding="utf-8") as plugin_config_file:
+            plugin_config = json.load(plugin_config_file)
+
+            plugin_id = plugin_config["id"]
+
+            plugin_python_files = (path_to_main_folder / file_name for file_name in plugin_config["files"])
+
+            for plugin_python_file in plugin_python_files:
+                # Load plugin_python_file as a module into extension_modul
+                spec = spec_from_file_location(plugin_python_file.stem, plugin_python_file)
+                extension_modul = module_from_spec(spec)
+                # Execute modul
+                spec.loader.exec_module(extension_modul)  # Here the plugin registers itself.
+
+        if plugin_id not in Plugin.GLOBAL_PLUGINS:
+            raise NotRegisteredError(plugin_id, "Plugin")
+        return Plugin.GLOBAL_PLUGINS[plugin_id]  # The Plugin is already registered. It registers itself on creation
 
 
 class PluginManager:
@@ -242,25 +318,20 @@ class PluginManager:
         }
 
     @classmethod
-    def plugin_from_main_folder(cls, path_to_main_folder: Path):
-        """Load a plugin from the main folder. This requires that there is a file called 'extension.json'."""
-        with (path_to_main_folder / "extension.json").open(encoding="utf-8") as plugin_config_file:
-            plugin_config = json.load(plugin_config_file)
+    def plugins_from_main_folder(cls, path_to_main_folder: Path):
+        plugin_main_path = path_to_main_folder / "plugins"
 
-            plugin_id = plugin_config["id"]
+        plugin_folders = []
+        plugin_manager = PluginManager()
+        if plugin_main_path.exists():
+            plugin_folders += plugin_main_path.iterdir()
 
-            plugin_python_files = (path_to_main_folder / file_name for file_name in plugin_config["files"])
-
-            for plugin_python_file in plugin_python_files:
-                # Load plugin_python_file as a module into extension_modul
-                spec = spec_from_file_location(plugin_python_file.stem, plugin_python_file)
-                extension_modul = module_from_spec(spec)
-                # Execute modul
-                spec.loader.exec_module(extension_modul)
-
-        if plugin_id not in Plugin.GLOBAL_PLUGINS:
-            raise NotRegisteredError(plugin_id, "Plugin")
-        return Plugin.GLOBAL_PLUGINS[plugin_id]  # The Plugin is already registered. It registers itself on creation
+            for plugin_path in plugin_folders:
+                plugin_manager.add_plugin(
+                    Plugin.plugin_from_main_folder(plugin_path),
+                    activate=True
+                )
+            return plugin_manager
 
 
 RESPONSES = (
@@ -278,7 +349,7 @@ SMILEY_RESPONSES = (
 )
 
 
-def response_for_points(points, max_points, responses=None):
+def response_for_points(points, max_points, responses=None) -> str:
     if responses is None:
         responses = RESPONSES
 
@@ -291,34 +362,3 @@ def response_for_points(points, max_points, responses=None):
         max_points_for_this_response = (max_points // number_of_different_responses) * i
         if points <= max_points_for_this_response:
             return random.choice(response)
-
-
-def execute_quiz_as_cli_from_quiz_file(main_path):
-    main_path = Path(main_path)
-    plugin_folders = [DEFAULT_EXTENSION_PATH]
-
-    if main_path.is_dir():
-        path_to_quiz_file = main_path / "quiz.json"
-
-        plugin_main_path = main_path / "plugins"
-        if plugin_main_path.exists():
-            plugin_folders += plugin_main_path.iterdir()
-    else:
-        path_to_quiz_file = main_path
-
-    plugin_manager = PluginManager()
-
-    for plugin_path in plugin_folders:
-        plugin_manager.add_plugin(
-            PluginManager.plugin_from_main_folder(plugin_path),
-            activate=True
-        )
-
-    if not path_to_quiz_file.exists():
-        print(f"No quiz found at {path_to_quiz_file}!")
-        return
-
-    with path_to_quiz_file.open("r", encoding="utf-8") as quiz_file:
-        quiz_config = json.load(quiz_file)
-
-    Quiz(quiz_config, plugin_manager).run_cli()

@@ -1,7 +1,10 @@
 import enum
 import re
+from pathlib import Path
 
-from quiz_enchanter import Plugin, BaseModel
+from PyQt6.uic import loadUi
+
+from quiz_enchanter import Plugin, BaseModel, BaseGUI
 
 
 plugin = Plugin.get_plugin("default")
@@ -58,7 +61,7 @@ class MatchModel(BaseModel):
         else:
             matches_regex = True
 
-        return matches_regex and in_correct, 1
+        return int(matches_regex and in_correct), 1
 
 
 @match_quiz_type.cli
@@ -66,3 +69,15 @@ def run(model):
     print(model.question)
 
     return input("Answer: ")
+
+
+@match_quiz_type.gui
+class MatchGUI(BaseGUI):
+    def __init__(self, model):
+        super().__init__(model)
+        loadUi(Path(__file__).parent.parent / "ui/ui_files/match.ui", self)
+
+        self.question.setText(model.question)
+
+    def selection(self):
+        return self.input.text()

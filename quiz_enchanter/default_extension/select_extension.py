@@ -1,4 +1,9 @@
-from quiz_enchanter import Plugin, BaseModel
+from pathlib import Path
+
+from PyQt6.uic import loadUi
+
+from quiz_enchanter import Plugin, BaseModel, BaseGUI
+
 
 plugin = Plugin.get_plugin("default")
 select_quiz_type = plugin.quiz_type("select", "Select")
@@ -14,7 +19,7 @@ class SelectModel(BaseModel):
         self.correct = correct if isinstance(correct, list) else [correct]  # Multiple correct answers are allowed!
 
     def is_correct(self, selection):
-        return selection in self.correct, 1
+        return int(selection in self.correct), 1
 
 
 @select_quiz_type.cli
@@ -32,3 +37,16 @@ def run(model):
                 return selection
         except ValueError:
             pass
+
+
+@select_quiz_type.gui
+class SelectGUI(BaseGUI):
+    def __init__(self, model):
+        super().__init__(model)
+        loadUi(Path(__file__).parent.parent / "ui/ui_files/select.ui", self)
+
+        self.question.setText(model.question)
+        self.combo.addItems(model.options)
+
+    def selection(self):
+        return self.combo.currentIndex()
